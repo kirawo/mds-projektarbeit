@@ -6,17 +6,40 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(include =FALSE, warning = FALSE)
 ```
 
 # Research Question
 
+- WHO about stroke
+
+After a stroke occurs, every minute counts. The sooner the affected person 
+receives medical care, the higher the chances of a good recovery and little 
+subsequent damages. Thus it is key to recocgnize a stroke occured. Besides
+knowledge about the visible symptoms of a stroke, knowledge about who is at 
+high(er) risk to suffer a stroke can help channeling valuable attention 
+resources on the right people.
+
+Therefore, in my project I will work with the research question which medical 
+or lifestyle factors can be associated with a higher stroke risk and which
+statistical model is most appropriate to predict stroke occurences.
+
+
 # Data
 
 The data with which I will investigate my research question is publically
-accessible via kaggle.com. The dataset is called "Stroke Prediction Dataset", uploaded on the 26th of January 2021 by the user fedesoriano (https://www.kaggle.com/fedesoriano/stroke-prediction-dataset). Unfortunately, no further sources for the data or information about the collection methodology or author are given. Thus, the validity of the data is uncertain and conclusions should be drawn with a grain of salt. Nevertheless, the data superficially seems fit to investigate the research question.
+accessible via kaggle.com. The dataset is called "Stroke Prediction Dataset", 
+uploaded on the 26th of January 2021 by the user fedesoriano 
+(https://www.kaggle.com/fedesoriano/stroke-prediction-dataset). 
+Unfortunately, no further sources for the data or information about the 
+collection methodology or author are given. Thus, the validity of the data is 
+uncertain and conclusions should be drawn with a grain of salt. Nevertheless, 
+the data superficially seems fit to investigate the research question.
 
-The dataset includes information about 5110 people. There is demographic data (age, gender), medical data (Hypertension, Heart Disease, Glucose Level, BMI, Stroke), and lifestyle data (Marriage, Work Type, Residence Type, Smoking Status). 
+The dataset includes information about 5110 people. There is demographic data 
+(age, gender), medical data (Hypertension, Heart Disease, Glucose Level, 
+BMI, Stroke), and lifestyle data (Marriage, Work Type, Residence Type, Smoking 
+Status). 
 
 
 
