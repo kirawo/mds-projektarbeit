@@ -1,0 +1,18 @@
+---
+title: "Project Outline"
+author: "Kira Wolff"
+date: "April 2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Research Question
+
+# Data
+
+# Methods
+
+# Expectations
