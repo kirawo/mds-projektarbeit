@@ -1,0 +1,41 @@
+---
+title: "Stroke Risk Factors"
+author: "Kira Wolff"
+date: "11 4 2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r packages}
+library(tidyverse)
+```
+
+```{r Data}
+# noch NAs definieren
+stroke <- read.csv("healthcare-dataset-stroke-data.csv") %>% 
+  mutate(id = as.factor(id),
+         gender = as.factor(gender),
+         hypertension = as.factor(hypertension),
+         heart_disease = as.factor(heart_disease),
+         ever_married = as.factor(ever_married),
+         work_type = as.factor(work_type),
+         Residence_type = as.factor(Residence_type),
+         bmi = as.numeric(bmi),
+         smoking_status = as.factor(smoking_status),
+         stroke = as.factor(stroke)
+         )
+```
+
+```{r Data Description}
+table(stroke$stroke)
+
+summary(stroke)
+
+hist(stroke$age)
+
+sum(stroke$hypertension == 1 | stroke$heart_disease == 1 | stroke$stroke == 1)/length(stroke$id)
+```
+
