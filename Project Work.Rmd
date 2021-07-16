@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r packages}
 library(tidyverse)
+library(gridExtra) # arrange plots
 ```
 
 ```{r Data}
@@ -18,15 +19,48 @@ library(tidyverse)
 stroke <- read.csv("healthcare-dataset-stroke-data.csv") %>% 
   mutate(id = as.factor(id),
          gender = as.factor(gender),
-         hypertension = as.factor(hypertension),
+         age = as.numeric(age),
+         hypertension = factor(hypertension, 
+                               levels=c(0,1), 
+                               labels = c("No", "Yes")),
          heart_disease = as.factor(heart_disease),
          ever_married = as.factor(ever_married),
          work_type = as.factor(work_type),
          Residence_type = as.factor(Residence_type),
+         avg_glucose_level = as.numeric(avg_glucose_level),
          bmi = as.numeric(bmi),
          smoking_status = as.factor(smoking_status),
          stroke = as.factor(stroke)
          )
+```
+```{r Data Description categorial}
+# gender, hypertension, heart_disease, ever_married, work_type, residence_type,
+# smoking_status, stroke
+
+# collect categorial variables
+var.cat <- c("gender", "hypertension", "heart_disease", "ever_married", 
+             "work_type", "Residence_type", "smoking_status", "stroke")
+plot.labels <- 1:8
+
+# create function
+plot.bar <- function(data, x, lab){
+  ggplot(data, aes_string(x=x, fill=x))+
+    geom_bar()+
+    xlab(lab)+
+    theme_minimal()
+}
+
+#apply function to all variables
+cat.plots <- lapply(var.cat, plot.bar, data=stroke, lab=plot.labels)
+# labels werden gedruckt, Problem ist aber dass sie beim ersten Element bleiben
+cat.plots <- lapply(1:length(var.cat), plot.bar, data=stroke, lab=plot.labels[i])
+
+# build grid of plots
+do.call(grid.arrange, cat.plots)
+
+cat.plots[[1]]+
+  xlab("Gender")
+# Ich könnte sie auch von Hand verschönern - habe ich Änderungen, die generalisiertbar sind?
 ```
 
 ```{r Data Description}
