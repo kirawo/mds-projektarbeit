@@ -4,28 +4,40 @@ author: "Kira Wolff"
 date: "11 4 2021"
 output: pdf_document
 ---
+# Introduction
+
+## Research Question
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+# chunk options
+knitr::opts_chunk$set(echo = FALSE, cache = FALSE, warning = FALSE, 
+                      message = FALSE)
+
+set.seed(30051994) # for reproducibility
 ```
 
 ```{r packages}
-library(tidyverse)
+library(tidyverse) # data handling
 library(gridExtra) # arrange plots
+library(ggpubr) # arrange plots
 library(caret) # modeling methods
 library(knitr) # table design
 ```
+
+gridExtra vllt raus, vllt nur ggpubr notwending
+
 
 # Method
 
 - R Version, mit der gerechnet wurde
 - Ergebnisse können mit github xx reproduziert werden
+- p-wert signifikant
 
 # Results
 
-```{r clean data}
-# noch NAs definieren
-stroke.clean <- read.csv("healthcare-dataset-stroke-data.csv") %>% 
+```{r transform data}
+# define classes
+stroke <- read.csv("healthcare-dataset-stroke-data.csv") %>% 
   mutate(id = as.factor(id),
          gender = as.factor(gender),
          age = as.numeric(age),
@@ -40,48 +52,187 @@ stroke.clean <- read.csv("healthcare-dataset-stroke-data.csv") %>%
          stroke = as.factor(stroke)
          )
 ```
-```{r imputation of NAs}
 
+```{r missing data}
+# function to ease identifying variables with missing data
+any.na <- function(col){
+  any(is.na(col))
+}
+
+# identify variables with missing data
+apply(stroke[,1:length(names(stroke))], 2, FUN="any.na")
+
+
+# imputation of missing data via regression
+## create dataset without missing data
+stroke.complete <- stroke %>% 
+  na.omit(bmi)
+
+## build model
+lm.bmi <- lm(bmi ~ gender + age + hypertension + heart_disease + ever_married + 
+               work_type + Residence_type + avg_glucose_level + 
+               smoking_status + stroke,
+             data = stroke.complete)
+
+## create dataset with missing subjects
+stroke.na <- stroke %>% 
+  filter(is.na(bmi))
+
+## predict bmi
+bmi.pred <- predict(lm.bmi, stroke.na)
+
+## substitute missing data with predicted data
+stroke.na$bmi <- bmi.pred
+
+stroke.clean <- rbind(stroke.na, stroke.complete)
 ```
 
 - bmi NA data
+- single imputation: Regression approach
 
-```{r Data Description categorial, eval=FALSE, include=FALSE}
+## Subjects
+
+```{r calculations for descriptives}
+nsub <- length(stroke.clean$id)
+
+age.min <- min(stroke.clean$age)
+age.max <- max(stroke.clean$age)
+age.mean <- mean(stroke.clean$age)
+age.sd <- sd(stroke.clean$age)
+
+fem.perc <- round(prop.table(table(stroke.clean$gender))[1]*100,2)
+men.perc <- round(prop.table(table(stroke.clean$gender))[2]*100,2)
+div.perc <- round(prop.table(table(stroke.clean$gender))[3]*100,2)
+
+gluc.mean <- mean(stroke.clean$avg_glucose_level)
+gluc.sd <- sd(stroke.clean$avg_glucose_level)
+
+bmi.mean <- mean(stroke.clean$bmi)
+bmi.sd <- sd(stroke.clean$bmi)
+```
+
+
+The data represents information about `r nsub` subjects. The sample has a large
+age range from <1 to `r age.max` years with a mean of `r round(age.mean, 2)`
+years (_SD_ = `r round(age.sd, 2)`). It consists of `r fem.perc`% women,
+`r men.perc`% men, and `r div.perc`% identifying with other labels.
+
+As Fig. XXX shows, the majority of the sample has no history of hypertension, 
+heart disease, stroke or elevated blood glucose level.
+
+Vielleicht Demographic Data Figure weglassen weil im Text beschrieben.
+
+```{r Data Description Plot prep}
 # gender, hypertension, heart_disease, ever_married, work_type, residence_type,
 # smoking_status, stroke
 
-# collect categorial variables
+# sort variables
 var.cat <- c("gender", "hypertension", "heart_disease", "ever_married", 
              "work_type", "Residence_type", "smoking_status", "stroke")
-plot.labels <- 1:8
+var.cont <- c("age", "avg_glucose_level", "bmi")
 
-# create function
-plot.bar <- function(data, x, lab){
-  ggplot(data, aes_string(x=x, fill=x))+
+# functions to enable "looping" plot creation
+plot.bar <- function(data, x){
+  ggplot(data, aes_string(x=x))+
     geom_bar()+
-    xlab(lab)+
+    ylab("Count")+
+    theme_minimal()+
+    theme(legend.title = element_blank())
+}
+
+plot.hist <- function(data, x){
+  ggplot(data, aes_string(x=x))+
+    geom_histogram()+
     theme_minimal()
 }
 
-#apply function to all variables
-cat.plots <- lapply(var.cat, plot.bar, data=stroke.clean, lab=plot.labels)
-# labels werden gedruckt, Problem ist aber dass sie beim ersten Element bleiben
-cat.plots <- lapply(1:length(var.cat), plot.bar, data=stroke.clean, lab=plot.labels[i])
+# create base plots
+cat.plots <- lapply(var.cat, plot.bar, data=stroke.clean)
+cont.plots <- lapply(var.cont, plot.hist, data=stroke.clean)
 
-# build grid of plots
-do.call(grid.arrange, cat.plots)
+# refine base plots
+plot.gen <- cat.plots[[1]]+
+  xlab("Gender")+
+  ggtitle("Demographic Data")
 
-cat.plots[[1]]+
-  xlab("Gender")
-# Ich könnte sie auch von Hand verschönern - habe ich Änderungen, die generalisiertbar sind?
+plot.hyp <- cat.plots[[2]]+
+  xlab("Hypertension")+
+  scale_x_discrete(labels = c("No", "Yes"))+
+  ggtitle("Medical Data")
+
+plot.heart <- cat.plots[[3]]+
+  xlab("Heart Disease")+
+  scale_x_discrete(labels = c("No", "Yes"))
+
+plot.mar <- cat.plots[[4]]+
+  xlab("Married (Lifetime)")+
+  ggtitle("Lifestyle Data")
+
+plot.work <- cat.plots[[5]]+
+  xlab("Work Type")+
+  scale_x_discrete(labels = c("At Home \nwith \nChildren", "Govern. \nJob",
+                              "Never \nWorked", "Private \nSector", 
+                              "Self-\nemployed"))
+
+plot.res <- cat.plots[[6]]+
+  xlab("Residence Type")
+
+plot.smok <- cat.plots[[7]]+
+  xlab("Smoking Status")+
+  scale_x_discrete(labels = c("formerly\nsmoked", "never\nsmoked", 
+                              "currently\nsmokes", "unknown"))
+
+plot.stroke <- cat.plots[[8]]+
+  xlab("Stroke")+
+  scale_x_discrete(labels = c("No", "Yes"))
+
+plot.age <- cont.plots[[1]]+
+  xlab("Age")+
+  annotate(geom="text", x=15, y=220, 
+           label=paste("M =",
+                       round(age.mean, 2),
+                       "\nSD =",
+                       round(age.sd,2)))
+
+
+plot.gluc <- cont.plots[[2]]+
+  xlab("Glucose Level")+
+  annotate(geom="text", x=200, y=600, 
+           label=paste("M =",
+                       round(gluc.mean, 2),
+                       "\nSD =",
+                       round(gluc.sd,2)))
+
+plot.bmi <- cont.plots[[3]]+
+  xlab("BMI")+
+  annotate(geom="text", x=75, y=750, 
+           label=paste("M =",
+                       round(bmi.mean, 2),
+                       "\nSD =",
+                       round(bmi.sd,2)))
 ```
+
+
+
+```{r Plot Demographic, fig.height=3}
+ggarrange(plot.gen, plot.age)
+```
+
+```{r Plot Medical, fig.height=6}
+ggarrange(plot.hyp, plot.heart, plot.stroke, plot.gluc)
+```
+
+```{r Plot Lifestyle, fig.height=9}
+ggarrange(plot.mar, plot.work, plot.res, plot.smok, plot.bmi, ncol=2, nrow=3)
+```
+
+
+## Model Evaluation
 
 ```{r Data Description}
 table(stroke.clean$stroke)
 
 summary(stroke.clean)
-
-hist(stroke.clean$age)
 
 sum(stroke.clean$hypertension == 1 | stroke.clean$heart_disease == 1 | stroke.clean$stroke.clean == 1)/length(stroke.clean$id)
 ```
@@ -96,15 +247,14 @@ test.data <- stroke.clean[-train.index,]
 ```
 
 ```{r variable selection}
-model <- stroke ~ age + hypertension + heart_disease + ever_married
+model <- stroke ~ gender + age + hypertension + heart_disease + ever_married +
+  work_type + Residence_type + avg_glucose_level + bmi + smoking_status
 ```
 
 
 Model as placeholder
 
 ```{r prepare cross-validation}
-set.seed(30051994) # for reproducibility
-
 trctrl <- trainControl(method="cv", number=5)
 ```
 
@@ -112,10 +262,11 @@ trctrl <- trainControl(method="cv", number=5)
 
 ```{r logistic regression}
 # fit model
-glm.train <- train(stroke ~ age,
+glm.train <- train(model,
                    train.data,
                    trControl = trctrl,
                    method = "glm",
+                   preProcess = c("center", "scale"),
                    family = "binomial")
 
 summary(glm.train)
@@ -140,15 +291,8 @@ reg.train <- train(model,
                    method = "glmnet",
                    preProcess = c("center", "scale"),
                    metric = "Accuracy",
-                   tuneLength = 10,
+                   tuneLength = 20,
                    family = "binomial")
-
-# Results
-reg.train$bestTune
-
-reg.train$results %>% 
-  filter(alpha == reg.train$bestTune$alpha,
-         lambda == reg.train$bestTune$lambda)
 
 # predict test data
 reg.preds <- predict(reg.train, test.data)
@@ -231,18 +375,60 @@ model.comp <- data.frame(
   spec = sapply(models, read.output, info="specifity")
 )
 
-# kable(
-#   model.comp,
-#   format = "latex",
-#   booktabs = TRUE,
-#   col.names = c("Model", "Accuracy", "Sensitivity", "Specifity"),
-#   align = c(1, "c", "c", "c"),
-#   caption = "Comparison of the Models"
-# )
+kable(
+  model.comp,
+  #format = "latex",
+  #booktabs = TRUE,
+  col.names = c("Model", "Accuracy", "Sensitivity", "Specifity"),
+  align = c("l", "c", "c", "c"),
+  caption = "Comparison of the Models",
+  digits = 3
+)
 ```
+
+Tabelle rundet an Stellen wo ich es nicht will
+Bzw es wird nicht das geknittet was hier in der Tabelle steht?
+
+## Predictor Evaluation
+
+Since the GLM reached highest accuracy while being the simplest model, it will
+be used to take a closer look at the predictors.
+
+```{r GLM predictor}
+glm.train
+summary(glm.train)
+```
+
+The GLM with stroke as outcome yields age (...), hypertension (...), and 
+glucose level (...) as significant predictors. 
 
 
 # Discussion 
+
+```{r calculating values for discussion}
+
+```
+
+
+According to accuracy as performance criterium, there is no difference between GLM,
+regularized regression and SVM. Due to the principle to keep modeling as simple
+as possible, as long as performance does not suffer, GLM is to be preferred in
+this case. The more complex models did not improve prediction performance. 
+
+On the first glance, the accuracy of XXXX seems to be a good result for the
+goal to build a model to predict stroke occurence. Unfortunately, when
+considering specifity as an additional performance criterium, the prediction does
+not work well. Considering the data, the reason for this probably lies in the
+ratio from subjects with to subjects without stroke which is XXXXX. This ratio 
+leads to an unbalanced dataset, and accuracy is no longer a good performance
+criterium (QUELLE????): Because of the high portion of healthy subjects, high 
+accuracy is easy to acquire by always predicting "no stroke". There are
+solutions for unbalanced datasets which unfortunately go beyond the scope of 
+this project work because they were not covered by the data science course.
+
+
+Although the created models will thus not work well to predict future stroke
+cases, the predictors can still be interpreted.
 
 - Welches Modell am besten (nicht nur Acc, sondern auch Confusion Matrixes. 
 Kommen zum gleichen Ergebnis?)
