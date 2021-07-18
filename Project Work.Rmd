@@ -3,39 +3,105 @@ title: "Stroke Risk Factors"
 author: "Kira Wolff"
 date: "11 4 2021"
 output: pdf_document
+bibliography: bibliography.bib
 ---
 # Introduction
 
+After a stroke occurs, every minute counts [@darehed2020]. The sooner the affected person 
+receives medical care, the higher the chances of a good recovery and little 
+subsequent damages. Thus it is key to recocgnize a stroke occured. Besides
+knowledge about the visible symptoms of a stroke, knowledge about who is at 
+high(er) risk to suffer a stroke can help channeling valuable attention 
+resources on the these people.
+
+One opportunity to identify the risk factors is ...
+
 ## Research Question
+
+The goal of this project is to identify medical and/or lifestyle factors that 
+are associated with stroke occurence. These factors can potentially be used to
+assess the risk of someone experiencing a stroke.
 
 ```{r setup, include=FALSE}
 # chunk options
-knitr::opts_chunk$set(echo = FALSE, cache = FALSE, warning = FALSE, 
-                      message = FALSE)
+knitr::opts_chunk$set(echo = FALSE, cache = TRUE, warning = FALSE, 
+                      message = FALSE, include=FALSE)
 
 set.seed(30051994) # for reproducibility
 ```
 
 ```{r packages}
 library(tidyverse) # data handling
-library(gridExtra) # arrange plots
+library(scales) # add percentages to bar plots
 library(ggpubr) # arrange plots
 library(caret) # modeling methods
+library(randomForest) # to use random forest in caret
+library(rpart.plot) # tree plots
 library(knitr) # table design
 ```
 
-gridExtra vllt raus, vllt nur ggpubr notwending
+tree plots eventuell raus
 
 
 # Method
 
-- R Version, mit der gerechnet wurde
-- Ergebnisse können mit github xx reproduziert werden
-- p-wert signifikant
+To answer the research question, data about people with and without a stroke in
+their medical history will be used. The goal is to build a model that classifies
+the people correctly as stroke patients and people without stroke history. This
+model could then be applied to other people about whom basic demographic,
+medical and lifestyle data is known. If the model classifies them as stroke
+patients although they did not experience one, they should be treated as high
+risk.
+
+As common procedure for binary classification problems, a logistic regression 
+will be conducted. 
+Considering potentially more complex connections 
+between the variables, further modeling approaches will be used. Firstly, a regularization
+term in form of Elastic Net will be added which is especially sensible in 
+prediction contexts as it reduces overfitting. Elastic Net was choosen instead of
+LASSO or Ridge regularization because it enables a sort of compromise between the 
+other methods, as both parameters can be tuned. 
+Secondly, to consider the case that the relationship of the variables is better 
+represented by a more complex function, support vector machines (SVMs) with a 
+linear kernel will be applied. 
+Finally, a classification tree using the random forest algorithm will be applied. 
+This might be 
+especially useful to identify the most important/impactful covariates, that is, 
+predictors. 
+
+To train the models and tune the parameters, repeated 5-fold cross-validation will be used. Additionally, the final
+models' performance will be tested with a subset of the data that is not part of the training, consisting of 20% of the original dataset. 
+The best model will be identified via accuracy
+as performance criterium. Sensitivity and Specifity will also be considered, as
+well as the general complexity of the model - in case of near identical performance,
+simpler models will be chosen.
+
+Finally, the best model will be evaluated regarding the predictors. If possible,
+a p-value of 0.05 will be considered as a significant result.
+
+## Implementation
+
+The analysis will be conducted using R version 4.0.3 [@rcoreteam2020] in RStudio
+version 1.3.1093 [@rstudio2020]. Data will be handled via _tidyverse_ [@tidyverse2019], primarly with _dplyr_ 
+ [dplyr2020], and plotted with _ggplot2_ [@ggplot2016] and _ggpubr_ [@ggpubr2020].
+The models will be implemented using _caret_ [@caret2020] and _randomForest_ [...]. For resampling, the 
+methods offered by _caret_ will be used. Data will be preprocessed by centering and scaling before building the models.
+
+- preprocess
+
+## Data
+
+The data comes from the publicly accessible "Stroke Prediction Dataset" which was
+published by the user fedesoriano on kaggle.net in January of 2021 [@strokedata].
+Unfortunately, no further information about the validity of the data is known.
+The dataset contains information about demographic, medical and lifestyle data 
+from >5000 people.
+Missing Data were handled via single imputation by predicting the missing values
+with a linear regression model
 
 # Results
 
-```{r transform data}
+```{r load and transform data}
 # define classes
 stroke <- read.csv("healthcare-dataset-stroke-data.csv") %>% 
   mutate(id = as.factor(id),
@@ -87,8 +153,6 @@ stroke.na$bmi <- bmi.pred
 stroke.clean <- rbind(stroke.na, stroke.complete)
 ```
 
-- bmi NA data
-- single imputation: Regression approach
 
 ## Subjects
 
@@ -109,6 +173,11 @@ gluc.sd <- sd(stroke.clean$avg_glucose_level)
 
 bmi.mean <- mean(stroke.clean$bmi)
 bmi.sd <- sd(stroke.clean$bmi)
+
+sick <- stroke.clean %>% 
+  filter(hypertension == 1 | heart_disease == 1 | stroke == 1) %>% 
+  summarize(n = n(),
+            perc = round(n()/nsub*100,2))
 ```
 
 
@@ -118,9 +187,14 @@ years (_SD_ = `r round(age.sd, 2)`). It consists of `r fem.perc`% women,
 `r men.perc`% men, and `r div.perc`% identifying with other labels.
 
 As Fig. XXX shows, the majority of the sample has no history of hypertension, 
-heart disease, stroke or elevated blood glucose level.
+heart disease, stroke or elevated blood glucose level. Excluding the latter, `r sick$perc`%
+are affected by at least one of the aforementioned diagnoses overall.
+
+- smoking unknown: no information availaible, unfortunately large percentage
 
 Vielleicht Demographic Data Figure weglassen weil im Text beschrieben.
+
+Tabelle mit Daten nach Stroke aufgeteilt? Weil AV wäre schon berechtigt
 
 ```{r Data Description Plot prep}
 # gender, hypertension, heart_disease, ever_married, work_type, residence_type,
@@ -134,15 +208,18 @@ var.cont <- c("age", "avg_glucose_level", "bmi")
 # functions to enable "looping" plot creation
 plot.bar <- function(data, x){
   ggplot(data, aes_string(x=x))+
-    geom_bar()+
-    ylab("Count")+
+    geom_bar(aes(y=..count../sum(..count..)))+
+    ylab("Percentage")+
+    scale_y_continuous(labels=percent_format())+
     theme_minimal()+
     theme(legend.title = element_blank())
 }
 
 plot.hist <- function(data, x){
   ggplot(data, aes_string(x=x))+
-    geom_histogram()+
+    geom_histogram(aes(y=..count../sum(..count..)))+
+    ylab("Percentage")+
+    scale_y_continuous(labels=percent_format())+
     theme_minimal()
 }
 
@@ -196,7 +273,7 @@ plot.age <- cont.plots[[1]]+
 
 
 plot.gluc <- cont.plots[[2]]+
-  xlab("Glucose Level")+
+  xlab("Glucose Level [mg/dl]")+
   annotate(geom="text", x=200, y=600, 
            label=paste("M =",
                        round(gluc.mean, 2),
@@ -214,15 +291,16 @@ plot.bmi <- cont.plots[[3]]+
 
 
 
-```{r Plot Demographic, fig.height=3}
+```{r Plot Demographic, fig.height=3, include=FALSE}
 ggarrange(plot.gen, plot.age)
+# do not show plot in pdf because text covers information
 ```
 
-```{r Plot Medical, fig.height=6}
+```{r Plot Medical, fig.height=6, include=TRUE}
 ggarrange(plot.hyp, plot.heart, plot.stroke, plot.gluc)
 ```
 
-```{r Plot Lifestyle, fig.height=9}
+```{r Plot Lifestyle, fig.height=9, include=TRUE}
 ggarrange(plot.mar, plot.work, plot.res, plot.smok, plot.bmi, ncol=2, nrow=3)
 ```
 
@@ -255,10 +333,12 @@ model <- stroke ~ gender + age + hypertension + heart_disease + ever_married +
 Model as placeholder
 
 ```{r prepare cross-validation}
-trctrl <- trainControl(method="cv", number=5)
+trctrl <- trainControl(method = "repeatedcv", 
+                       number = 5,
+                       repeats = 3)
 ```
 
-- Argumentation cross-validation, k=?
+
 
 ```{r logistic regression}
 # fit model
@@ -279,9 +359,19 @@ glm.preds <- predict(glm.train, test.data)
 glm.mat <- confusionMatrix(glm.preds, test.data$stroke)
 
 glm.mat
+
+r <- recall(glm.preds, test.data$stroke)
+p <- precision(glm.preds, test.data$stroke)
+
+r <- 0/(58+0)
+p <- 0/(0+0)
+
+r*p/(r+p)
+
+F_meas(glm.preds, test.data$stroke)
 ```
-- Sollte man hier auch zentrieren/standardisieren?
-- Age erst mal als Platzhalter
+
+
 - Varianzaufklärung auslesen?
 
 ```{r regularized log regression}
@@ -330,14 +420,18 @@ funktioniert. Was unterscheidet die Methoden?
 
 ```{r Random Forest}
 # fit model
+grid <- expand.grid(mtry = seq(0, 11, 0.5))
+
 tree.train <- train(model,
                    train.data,
-                   method = "rpart",
+                   method = "rf",
                    trControl = trctrl,
                    preProcess = c("center", "scale"),
                    tuneLength = 10)
 
 tree.train$bestTune
+
+rpart.plot(tree.train$finalMode)
 
 # predict test data
 tree.preds <- predict(tree.train, test.data)
@@ -345,12 +439,17 @@ tree.preds <- predict(tree.train, test.data)
 # compare prediction and real data
 tree.mat <- confusionMatrix(tree.preds, test.data$stroke)
 
+
+
 ```
 
+Accuracy mit tuneLength: 0.9496 bzw 0.9432 für pred
+Acc mit grid von 0.003 bis 0.01: 0.953
+Acc mit grid von 0.01 bis 0.05: 0.953, immer noch upper bound
 
 - Methode rpart begründen
 
-```{r model comparison}
+```{r model comparison, include=TRUE}
 # list of all models
 models <- list(glm.mat, reg.mat, svm.mat, tree.mat)
 
@@ -423,8 +522,8 @@ ratio from subjects with to subjects without stroke which is XXXXX. This ratio
 leads to an unbalanced dataset, and accuracy is no longer a good performance
 criterium (QUELLE????): Because of the high portion of healthy subjects, high 
 accuracy is easy to acquire by always predicting "no stroke". There are
-solutions for unbalanced datasets which unfortunately go beyond the scope of 
-this project work because they were not covered by the data science course.
+solutions for unbalanced datasets like Over- or Under-Sampling which unfortunately 
+go beyond the scope of this project work.
 
 
 Although the created models will thus not work well to predict future stroke
@@ -440,3 +539,9 @@ Kommen zum gleichen Ergebnis?)
 - Falls Accuracy gut erscheint, aber Confusion Matrix zeigt dass nie gefunden: 
 Liegt an Daten? Zu wenig Fälle. So wenige, dass Wette einfach auf "nicht" zu gehen
 zu gut ist. Außerdem Stichprobe zu heterogen?
+- Limitation: unbalanced, Datenherkunft unsicher
+- Future: andere Methoden/Outcome die unbalanced berücksichtigen, etwas homogenere Daten 
+weil Alter so wichtig -> auf Alter kontrollieren um andere Faktoren besser hervorzuheben
+
+
+# References
