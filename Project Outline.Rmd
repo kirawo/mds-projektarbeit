@@ -9,6 +9,8 @@ output: pdf_document
 knitr::opts_chunk$set(include =FALSE, warning = FALSE)
 ```
 
+
+
 # Research Question
 
 After a stroke occurs, every minute counts. The sooner the affected person 
