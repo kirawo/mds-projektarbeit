@@ -21,6 +21,7 @@
 @misc{strokedata,
 	title = {Stroke Prediction Dataset},
 	author = {fedesoriano},
+	year = {2021},
 	howpublished = {https://www.kaggle.com/fedesoriano/stroke-prediction-dataset},
 	note = {downloaded on 2021/04/07}
 }
@@ -77,4 +78,52 @@
     year = {2020},
     note = {R package version 0.4.0},
     url = {https://CRAN.R-project.org/package=ggpubr},
+  }
+
+@article{sahyoun2001,
+  title={Trends in causes of death among the elderly},
+  author={Sahyoun, Nadine R and Lentzner, Harold and Hoyert, Donna and Robinson, Kristen N},
+  journal={Aging trends},
+  volume={1},
+  number={1},
+  pages={1--10},
+  year={2001}
+}
+
+@article{sander2008,
+  title={Stroke in type 2 diabetes},
+  author={Sander, Dirk and Sander, Kerstin and Poppert, Holger},
+  journal={The British Journal of Diabetes \& Vascular Disease},
+  volume={8},
+  number={5},
+  pages={222--229},
+  year={2008},
+  publisher={SAGE Publications Sage UK: London, England}
+}
+
+@Manual{scales2020,
+    title = {scales: Scale Functions for Visualization},
+    author = {Hadley Wickham and Dana Seidel},
+    year = {2020},
+    note = {R package version 1.1.1},
+    url = {https://CRAN.R-project.org/package=scales},
+  }
+
+@Article{rforest2002,
+    title = {Classification and Regression by randomForest},
+    author = {Andy Liaw and Matthew Wiener},
+    journal = {R News},
+    year = {2002},
+    volume = {2},
+    number = {3},
+    pages = {18-22},
+    url = {https://CRAN.R-project.org/doc/Rnews/},
+  }
+
+@Manual{caret2020,
+    title = {caret: Classification and Regression Training},
+    author = {Max Kuhn},
+    year = {2020},
+    note = {R package version 6.0-86},
+    url = {https://CRAN.R-project.org/package=caret},
   }
