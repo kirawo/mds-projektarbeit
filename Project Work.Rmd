@@ -1,33 +1,31 @@
 ---
 title: "Stroke Risk Factors"
 author: "Kira Wolff"
-date: "11 4 2021"
 output: pdf_document
 bibliography: bibliography.bib
 ---
 # Introduction
 
-After a stroke occurs, every minute counts [@darehed2020]. The sooner the affected person 
-receives medical care, the higher the chances of a good recovery and little 
-subsequent damages. Thus it is key to recocgnize a stroke occured. Besides
-knowledge about the visible symptoms of a stroke, knowledge about who is at 
-high(er) risk to suffer a stroke can help channeling valuable attention 
+After a stroke occurs, every minute counts [@darehed2020]. The sooner the 
+affected person receives medical care, the higher the chances of a good recovery 
+and little subsequent damages. Thus it is key to recognize a stroke occured. 
+Besides knowledge about the visible symptoms of a stroke, knowledge about who is
+at high(er) risk to suffer a stroke can help channeling valuable attention 
 resources on the these people.
-
-One opportunity to identify the risk factors is ...
 
 ## Research Question
 
 The goal of this project is to identify medical and/or lifestyle factors that 
-are associated with stroke occurence. These factors can potentially be used to
-assess the risk of someone experiencing a stroke.
+are associated with stroke occurence by constructing a model that predicts
+stroke occurence and finding the important predictors.
 
 ```{r setup, include=FALSE}
 # chunk options
-knitr::opts_chunk$set(echo = FALSE, cache = TRUE, warning = FALSE, 
-                      message = FALSE, include=FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, 
+                      message = FALSE, include = FALSE)
 
-set.seed(30051994) # for reproducibility
+# setup seed for reproducibility
+set.seed(30051994) 
 ```
 
 ```{r packages}
@@ -36,11 +34,8 @@ library(scales) # add percentages to bar plots
 library(ggpubr) # arrange plots
 library(caret) # modeling methods
 library(randomForest) # to use random forest in caret
-library(rpart.plot) # tree plots
 library(knitr) # table design
 ```
-
-tree plots eventuell raus
 
 
 # Method
@@ -48,58 +43,54 @@ tree plots eventuell raus
 To answer the research question, data about people with and without a stroke in
 their medical history will be used. The goal is to build a model that classifies
 the people correctly as stroke patients and people without stroke history. This
-model could then be applied to other people about whom basic demographic,
+model could then be applied to other people whose basic demographic,
 medical and lifestyle data is known. If the model classifies them as stroke
 patients although they did not experience one, they should be treated as high
 risk.
 
+Simple comparisons by group will be executed with t-tests or $\chi$²-tests for
+continuous and categorial variables, respectively.
+
 As common procedure for binary classification problems, a logistic regression 
 will be conducted. 
 Considering potentially more complex connections 
-between the variables, further modeling approaches will be used. Firstly, a regularization
-term in form of Elastic Net will be added which is especially sensible in 
-prediction contexts as it reduces overfitting. Elastic Net was choosen instead of
-LASSO or Ridge regularization because it enables a sort of compromise between the 
-other methods, as both parameters can be tuned. 
+between the variables, further modeling approaches will be used. Firstly, a 
+regularization term in form of Elastic Net will be added which is especially 
+sensible in prediction contexts as it reduces overfitting. Elastic Net was 
+choosen instead of LASSO or Ridge regularization because it enables a sort of 
+compromise between the other methods, as both parameters can be tuned. 
 Secondly, to consider the case that the relationship of the variables is better 
 represented by a more complex function, support vector machines (SVMs) with a 
 linear kernel will be applied. 
-Finally, a classification tree using the random forest algorithm will be applied. 
-This might be 
-especially useful to identify the most important/impactful covariates, that is, 
-predictors. 
+Finally, a classification tree using the random forest algorithm will be 
+applied. This might be especially useful to identify the most 
+important/impactful variables, that is, predictors. 
 
-To train the models and tune the parameters, repeated 5-fold cross-validation will be used. Additionally, the final
-models' performance will be tested with a subset of the data that is not part of the training, consisting of 20% of the original dataset. 
-The best model will be identified via accuracy
-as performance criterium. Sensitivity and Specifity will also be considered, as
-well as the general complexity of the model - in case of near identical performance,
-simpler models will be chosen.
+To train the models and tune the parameters, repeated 5-fold cross-validation 
+will be used. Additionally, the final models' performance will be tested with a 
+subset of the data that is not part of the training, consisting of 20% of the 
+original dataset. 
+The best model will be identified via accuracy as performance criterium. 
+Sensitivity and Specifity will also be considered, as well as the general 
+complexity of the model - in case of near identical performance, simpler models 
+will be chosen.
 
 Finally, the best model will be evaluated regarding the predictors. If possible,
 a p-value of 0.05 will be considered as a significant result.
 
 ## Implementation
 
-The analysis will be conducted using R version 4.0.3 [@rcoreteam2020] in RStudio
-version 1.3.1093 [@rstudio2020]. Data will be handled via _tidyverse_ [@tidyverse2019], primarly with _dplyr_ 
- [dplyr2020], and plotted with _ggplot2_ [@ggplot2016] and _ggpubr_ [@ggpubr2020].
-The models will be implemented using _caret_ [@caret2020] and _randomForest_ [...]. For resampling, the 
-methods offered by _caret_ will be used. Data will be preprocessed by centering and scaling before building the models.
+The analysis will be conducted using _R_ version 4.0.3 [@rcoreteam2020] in 
+_RStudio_ version 1.3.1093 [@rstudio2020]. Data will be handled via _tidyverse_ 
+[@tidyverse2019], primarly with _dplyr_ [dplyr2020], and plotted with _ggplot2_ 
+[@ggplot2016], _scales_ [@scales2020] and _ggpubr_ [@ggpubr2020].
+The models will be implemented using _caret_ [@caret2020] and _randomForest_ 
+[@rforest2002]. For resampling, the methods offered by _caret_ 
+will be used. Data will be preprocessed by centering and scaling before building 
+the models.
 
-- preprocess
 
 ## Data
-
-The data comes from the publicly accessible "Stroke Prediction Dataset" which was
-published by the user fedesoriano on kaggle.net in January of 2021 [@strokedata].
-Unfortunately, no further information about the validity of the data is known.
-The dataset contains information about demographic, medical and lifestyle data 
-from >5000 people.
-Missing Data were handled via single imputation by predicting the missing values
-with a linear regression model
-
-# Results
 
 ```{r load and transform data}
 # define classes
@@ -119,7 +110,7 @@ stroke <- read.csv("healthcare-dataset-stroke-data.csv") %>%
          )
 ```
 
-```{r missing data}
+```{r impute missing data}
 # function to ease identifying variables with missing data
 any.na <- function(col){
   any(is.na(col))
@@ -140,7 +131,7 @@ lm.bmi <- lm(bmi ~ gender + age + hypertension + heart_disease + ever_married +
                smoking_status + stroke,
              data = stroke.complete)
 
-## create dataset with missing subjects
+## create dataset with only rows containing missing data
 stroke.na <- stroke %>% 
   filter(is.na(bmi))
 
@@ -153,21 +144,93 @@ stroke.na$bmi <- bmi.pred
 stroke.clean <- rbind(stroke.na, stroke.complete)
 ```
 
+```{r check data for irregularities}
+summary(stroke.clean)
+
+# Age decimals
+sum(stroke.clean$age < 1)
+sum(stroke.clean$age < 18)
+
+# bmi extreme
+stroke.clean %>% 
+  filter(bmi > 50) %>% 
+  select(bmi) %>% 
+  ggplot(aes(bmi))+
+    geom_histogram()
+
+stroke.clean %>% 
+  filter(bmi > 70) %>% 
+  select(bmi)
+
+# smoking unknown
+smok.unk <- round(sum(stroke.clean$smoking_status == "Unknown")/
+                    length(stroke.clean$smoking_status), 2)*100
+
+# outcome/stroke ratio
+stroke.ratio <- stroke.clean %>%
+  summarize(table(stroke)[1]/table(stroke)[2])
+```
+
+
+The data comes from the publicly accessible "Stroke Prediction" dataset which 
+was published by the user fedesoriano on kaggle.net in January of 2021 
+[@strokedata].
+Unfortunately, no further information about the validity of the data is known.
+The dataset contains information about demographic, medical and lifestyle data 
+from >5000 people.
+
+The independent variable of interest, stroke occurence, is represented in the
+data as a binary variable, corresponding to having had a stroke in the own 
+medical history or not. Unfortunately, the data is quite unbalanced with a ratio
+from `r round(stroke.ratio,2)`:1 for the subjects not affected by a stroke.
+
+Missing Data were handled via single imputation by predicting the missing values
+with a linear regression model.
+
+A few variables show disputable values for which more context or explanation by 
+the dataset's creator would have been useful. Since this information is not 
+provided, I try to evaluate them as appropriate or inappropriate.
+
+Among the age values, multiple cases show values smaller than one. Although this
+is not a common way to display age below one year, this is the most obvious
+explanation. It is not far-fetched since many other cases are underage as well.
+Although the age of people older than one year is just displayed as integer, the
+decimals might have been used for infants because an age of zero is even harder 
+to interpret or rather incorrect. Additionally, several months make a large 
+developmental difference for infants which could be considered here. Lastly, 
+reducing the values to "<1" would have removed the possibility to calculate with
+age as a continuous variable.
+
+Among the BMI values, outliers reach values up to 97. Although these values are
+extreme, they are not impossible and are thus likely valid.
+
+Concerning the smoking status variable, information about `r smok.unk`% of the 
+subjects in unknown which makes it difficult to evaluate the contribution of
+smoking to the research question. Nevertheless, the other extractable 
+information from this variable can be useful.
+
+# Results
+
+This section will describe the sample in more detail, build the models and 
+evaluate them.
 
 ## Subjects
 
 ```{r calculations for descriptives}
 nsub <- length(stroke.clean$id)
 
+# demographic
 age.min <- min(stroke.clean$age)
 age.max <- max(stroke.clean$age)
 age.mean <- mean(stroke.clean$age)
 age.sd <- sd(stroke.clean$age)
 
-fem.perc <- round(prop.table(table(stroke.clean$gender))[1]*100,2)
-men.perc <- round(prop.table(table(stroke.clean$gender))[2]*100,2)
-div.perc <- round(prop.table(table(stroke.clean$gender))[3]*100,2)
+fem.perc <- round(prop.table(table(stroke.clean$gender))[1]*100, 2)
+men.perc <- round(prop.table(table(stroke.clean$gender))[2]*100, 2)
+div.perc <- round(prop.table(table(stroke.clean$gender))[3]*100, 2)
 
+
+# health
 gluc.mean <- mean(stroke.clean$avg_glucose_level)
 gluc.sd <- sd(stroke.clean$avg_glucose_level)
 
@@ -177,29 +240,28 @@ bmi.sd <- sd(stroke.clean$bmi)
 sick <- stroke.clean %>% 
   filter(hypertension == 1 | heart_disease == 1 | stroke == 1) %>% 
   summarize(n = n(),
-            perc = round(n()/nsub*100,2))
+            perc = round(n()/nsub*100, 2))
+
+
+# work
+employed <- stroke.clean %>% 
+  filter(work_type == "Govt_job" | work_type == "Private" | 
+           work_type == "Self-employed") %>%
+  summarize(n = n(),
+            perc = (n()/nsub)*100)
+
+child <- stroke.clean %>% 
+  filter(work_type == "children") %>% 
+  summarize(n = n(),
+            perc = (n()/nsub)*100)
+
+# smoking 
+stroke.smoke <- stroke.clean %>% 
+  filter(smoking_status != "Unknown") %>% 
+  summarize(prop.table(table(smoking_status))*100)
 ```
 
-
-The data represents information about `r nsub` subjects. The sample has a large
-age range from <1 to `r age.max` years with a mean of `r round(age.mean, 2)`
-years (_SD_ = `r round(age.sd, 2)`). It consists of `r fem.perc`% women,
-`r men.perc`% men, and `r div.perc`% identifying with other labels.
-
-As Fig. XXX shows, the majority of the sample has no history of hypertension, 
-heart disease, stroke or elevated blood glucose level. Excluding the latter, `r sick$perc`%
-are affected by at least one of the aforementioned diagnoses overall.
-
-- smoking unknown: no information availaible, unfortunately large percentage
-
-Vielleicht Demographic Data Figure weglassen weil im Text beschrieben.
-
-Tabelle mit Daten nach Stroke aufgeteilt? Weil AV wäre schon berechtigt
-
 ```{r Data Description Plot prep}
-# gender, hypertension, heart_disease, ever_married, work_type, residence_type,
-# smoking_status, stroke
-
 # sort variables
 var.cat <- c("gender", "hypertension", "heart_disease", "ever_married", 
              "work_type", "Residence_type", "smoking_status", "stroke")
@@ -207,47 +269,46 @@ var.cont <- c("age", "avg_glucose_level", "bmi")
 
 # functions to enable "looping" plot creation
 plot.bar <- function(data, x){
-  ggplot(data, aes_string(x=x))+
-    geom_bar(aes(y=..count../sum(..count..)))+
+  ggplot(data, aes_string(x = x))+
+    geom_bar(aes(y=..count../sum(..count..)),
+             fill = "#4378A2")+
     ylab("Percentage")+
-    scale_y_continuous(labels=percent_format())+
+    scale_y_continuous(labels = percent_format())+
     theme_minimal()+
     theme(legend.title = element_blank())
 }
 
 plot.hist <- function(data, x){
-  ggplot(data, aes_string(x=x))+
-    geom_histogram(aes(y=..count../sum(..count..)))+
+  ggplot(data, aes_string(x = x))+
+    geom_histogram(aes(y=..count../sum(..count..)),
+                   fill = "#4378A2")+
     ylab("Percentage")+
-    scale_y_continuous(labels=percent_format())+
+    scale_y_continuous(labels = percent_format())+
     theme_minimal()
 }
 
 # create base plots
-cat.plots <- lapply(var.cat, plot.bar, data=stroke.clean)
-cont.plots <- lapply(var.cont, plot.hist, data=stroke.clean)
+cat.plots <- lapply(var.cat, plot.bar, data = stroke.clean)
+cont.plots <- lapply(var.cont, plot.hist, data = stroke.clean)
 
 # refine base plots
 plot.gen <- cat.plots[[1]]+
-  xlab("Gender")+
-  ggtitle("Demographic Data")
+  xlab("Gender")
 
 plot.hyp <- cat.plots[[2]]+
   xlab("Hypertension")+
-  scale_x_discrete(labels = c("No", "Yes"))+
-  ggtitle("Medical Data")
+  scale_x_discrete(labels = c("No", "Yes"))
 
 plot.heart <- cat.plots[[3]]+
   xlab("Heart Disease")+
   scale_x_discrete(labels = c("No", "Yes"))
 
 plot.mar <- cat.plots[[4]]+
-  xlab("Married (Lifetime)")+
-  ggtitle("Lifestyle Data")
+  xlab("Married (Lifetime)")
 
 plot.work <- cat.plots[[5]]+
   xlab("Work Type")+
-  scale_x_discrete(labels = c("At Home \nwith \nChildren", "Govern. \nJob",
+  scale_x_discrete(labels = c("Children", "Govern. \nJob",
                               "Never \nWorked", "Private \nSector", 
                               "Self-\nemployed"))
 
@@ -265,45 +326,199 @@ plot.stroke <- cat.plots[[8]]+
 
 plot.age <- cont.plots[[1]]+
   xlab("Age")+
-  annotate(geom="text", x=15, y=220, 
-           label=paste("M =",
-                       round(age.mean, 2),
-                       "\nSD =",
-                       round(age.sd,2)))
+  annotate(geom = "text",
+           x = 15, y = 0.045, 
+           label = paste("M =",
+                         round(age.mean, 2),
+                         "\nSD =",
+                         round(age.sd,2)))
 
 
 plot.gluc <- cont.plots[[2]]+
   xlab("Glucose Level [mg/dl]")+
-  annotate(geom="text", x=200, y=600, 
-           label=paste("M =",
-                       round(gluc.mean, 2),
-                       "\nSD =",
-                       round(gluc.sd,2)))
+  annotate(geom = "text", 
+           x = 200, y = 0.1, 
+           label = paste("M =",
+                         round(gluc.mean, 2),
+                         "\nSD =",
+                         round(gluc.sd,2)))
 
 plot.bmi <- cont.plots[[3]]+
   xlab("BMI")+
-  annotate(geom="text", x=75, y=750, 
-           label=paste("M =",
-                       round(bmi.mean, 2),
-                       "\nSD =",
-                       round(bmi.sd,2)))
+  annotate(geom = "text", 
+           x = 75, y = 0.15, 
+           label = paste("M =",
+                         round(bmi.mean, 2),
+                         "\nSD =",
+                         round(bmi.sd,2)))
+
+# show prepared plots via separate chunks
 ```
 
 
-
-```{r Plot Demographic, fig.height=3, include=FALSE}
+```{r Plot Demographic, fig.height=2, include=FALSE}
 ggarrange(plot.gen, plot.age)
 # do not show plot in pdf because text covers information
 ```
 
-```{r Plot Medical, fig.height=6, include=TRUE}
-ggarrange(plot.hyp, plot.heart, plot.stroke, plot.gluc)
+The data represents information about `r nsub` subjects. The sample has a large
+age range from <1 to `r age.max` years with a mean of `r round(age.mean, 2)`
+years (_SD_ = `r round(age.sd, 2)`). It consists of `r fem.perc`% women,
+`r men.perc`% men, and `r div.perc`% identifying with other labels.
+
+```{r Plot Medical, fig.height=6, include=TRUE, fig.cap = "Distributions of Medical Data"}
+ggarrange(plot.hyp, plot.heart, plot.stroke, plot.gluc, plot.bmi, ncol=2, 
+          nrow=3)
 ```
 
-```{r Plot Lifestyle, fig.height=9, include=TRUE}
-ggarrange(plot.mar, plot.work, plot.res, plot.smok, plot.bmi, ncol=2, nrow=3)
+As Figure 1 shows, the majority of the sample has no history of hypertension, 
+heart disease, stroke or elevated blood glucose level. Excluding the latter, 
+`r sick$perc`% are affected by at least one of the aforementioned diagnoses 
+overall. 
+According to the BMI data, all categories from underweight to obese are 
+represented by the sample (though BMI calculations for minors have to be 
+interpreted with reservations).
+
+```{r Plot Lifestyle, fig.height=4, include=TRUE, fig.cap = "Distributions of Lifestyle Data"}
+ggarrange(plot.mar, plot.work, plot.res, plot.smok)
 ```
 
+Concerning the lifestyle of the sample, the majority is married or has been at
+some point in their life. `r round(employed$perc,2)`% were employed or 
+self-employed at the time of data collection, while `r round(child$perc, 2)`% 
+were counted as children. 
+Regarding their residence, the sample splitted almost fifty-fifty into rural and
+urban population. At last, considering only the subsample whose smoking status 
+is known, `r round(stroke.smoke[2,],2)`% never smoked, while 
+`r round(stroke.smoke[1,],2)`% smoked formerly and 
+`r round(stroke.smoke[2,],2)`% currently still do.
+More information can be seen in Figure 2.
+
+In general, the sample seems to be quite representative of the general 
+population, without focusing on a specific subgroup. Thus, the results of the 
+following analysis can potentially be transferred to the general population. 
+Although one should keep in mind that some variable connections only appear in 
+certain subgroups, so working with samples like this is not always beneficial.
+
+```{r table stroke splitted, include=TRUE }
+# calculate descriptives
+sample <- stroke.clean %>%
+  # split by stroke
+  dplyr::group_by(stroke) %>%
+  # create summary
+  dplyr::summarize(
+    # n
+    n = n(),
+    #gender
+    'Gender (m/f)' = paste( 
+        round(prop.table(table(gender))[1]*100, 1), 
+        "/" ,
+        round(prop.table(table(gender))[2]*100, 1), 
+        sep=""),
+    #age
+    Age = paste(
+      round(mean(age), 1), 
+      " (", 
+      round(sd(age), 1), 
+      ")", 
+      sep=""),
+    #hypertension
+    'Hypertension (n/y)' = paste( 
+        round(prop.table(table(hypertension))[1]*100, 1), 
+        "/" ,
+        round(prop.table(table(hypertension))[2]*100, 1), 
+        sep=""),
+    #heart disease
+    'Heart Disease (n/y)' = paste( 
+        round(prop.table(table(heart_disease))[1]*100, 1), 
+        "/" ,
+        round(prop.table(table(heart_disease))[2]*100,1), 
+        sep=""),
+    #glucose
+    'Glucose [mg/dl]' = paste(
+      round(mean(avg_glucose_level), 1), 
+      " (", 
+      round(sd(avg_glucose_level), 1), 
+      ")", 
+      sep=""),
+    # bmi
+    "BMI" = paste(
+      round(mean(bmi), 1),
+      " (",
+      round(sd(bmi), 1),
+      ")",
+      sep=""),
+    #married
+    'Ever Married (n/y)' = paste( 
+        round(prop.table(table(ever_married))[1]*100, 1), 
+        "/" ,
+        round(prop.table(table(ever_married))[2]*100, 1), 
+        sep=""),
+    #residence
+    'Residence (rural/urban)' = paste( 
+        round(prop.table(table(Residence_type))[1]*100, 1), 
+        "/" ,
+        round(prop.table(table(Residence_type))[2]*100, 1), 
+        sep=""),
+    #smoking
+    'Smoking Status (formerly/never/currently)' = paste( 
+        round(prop.table(table(smoking_status))[1]*100, 1), 
+        "/" ,
+        round(prop.table(table(smoking_status))[2]*100, 1),
+        "/" ,
+        round(prop.table(table(smoking_status))[3]*100, 1), 
+        sep=""),
+    )
+
+values <- t(sample[-1])
+
+# calculate p-values
+
+sample.sig <- stroke.clean %>% 
+  summarize(
+    # empty for n
+    placeholder = "---",
+    # gender
+    gender.chi = round(chisq.test(table(gender, stroke))$p.value, 3),
+    # age
+    age.t = round(t.test(age ~ stroke)$p.value, 3),
+    # hypertension
+    hyp.chi = round(chisq.test(table(hypertension, stroke))$p.value, 3),
+    # heart disease
+    heart.chi = round(chisq.test(table(heart_disease, stroke))$p.value, 3),
+    # glucose
+    gluc.t = round(t.test(avg_glucose_level ~ stroke)$p.value, 3),
+    # bmi
+    bmi.t = round(t.test(bmi ~ stroke)$p.value, 3),
+    # married
+    married.chi = round(chisq.test(table(ever_married, stroke))$p.value, 3),
+    # residence
+    res.chi = round(chisq.test(table(Residence_type, stroke))$p.value, 3),
+    # smoking
+    smoke.chi = round(chisq.test(table(smoking_status, stroke))$p.value, 3),
+  )
+
+p.values <- t(sample.sig)
+
+# change "zero"-p-values to <.001
+for(i in 1:length(p.values)){
+  if(p.values[i,] == 0){
+    p.values[i,] <- "<0.001"
+  }
+}
+
+table1 <- cbind(values, p.values)
+
+kable(table1,
+      col.names= c("No Stroke", "Stroke", "p"),
+      caption = "Sample Data by Stroke Occurence (Mean (SD) or Percentages)")
+```
+
+
+A comparison of the variables by stroke, as depicted in Table 1, shows the 
+potential of the variables as predictors: For almost all variables, a 
+significant difference emerges. Especially age and the variables concerning
+health, i.e. hypertension, heart disease, and glucose show large differences.
 
 ## Model Evaluation
 
@@ -312,27 +527,24 @@ table(stroke.clean$stroke)
 
 summary(stroke.clean)
 
-sum(stroke.clean$hypertension == 1 | stroke.clean$heart_disease == 1 | stroke.clean$stroke.clean == 1)/length(stroke.clean$id)
+sum(stroke.clean$hypertension == 1 | stroke.clean$heart_disease == 1 | 
+      stroke.clean$stroke.clean == 1)/length(stroke.clean$id)
 ```
 
-```{r data splitting}
+```{r Model preparation}
+# Split Data
 # use 80% of the data to fit and tune the models, test accuracy with other 20%
 train.index <- sample(1:length(stroke.clean$id),
                       size = floor(length(stroke.clean$id)*0.8))
 
 train.data <- stroke.clean[train.index,]
 test.data <- stroke.clean[-train.index,]
-```
 
-```{r variable selection}
+# Create Base Model
 model <- stroke ~ gender + age + hypertension + heart_disease + ever_married +
   work_type + Residence_type + avg_glucose_level + bmi + smoking_status
-```
 
-
-Model as placeholder
-
-```{r prepare cross-validation}
+# Prepare Cross-validation
 trctrl <- trainControl(method = "repeatedcv", 
                        number = 5,
                        repeats = 3)
@@ -357,22 +569,11 @@ glm.preds <- predict(glm.train, test.data)
 
 # compare prediction and real data
 glm.mat <- confusionMatrix(glm.preds, test.data$stroke)
-
-glm.mat
-
-r <- recall(glm.preds, test.data$stroke)
-p <- precision(glm.preds, test.data$stroke)
-
-r <- 0/(58+0)
-p <- 0/(0+0)
-
-r*p/(r+p)
-
-F_meas(glm.preds, test.data$stroke)
 ```
 
-
-- Varianzaufklärung auslesen?
+The logistic regression provides a model with _Acc_ = 
+`r round(glm.train$results$Accuracy,3)` which reaches _Acc_ = 
+`r round(glm.mat$overall[1],3)` with the test data.
 
 ```{r regularized log regression}
 # fit model
@@ -381,8 +582,15 @@ reg.train <- train(model,
                    method = "glmnet",
                    preProcess = c("center", "scale"),
                    metric = "Accuracy",
-                   tuneLength = 20,
+                   tuneLength = 10,
                    family = "binomial")
+
+# save accuracy
+reg.train.acc <- reg.train$results %>% 
+  filter(alpha == reg.train$bestTune$alpha & 
+           lambda == reg.train$bestTune$lambda) %>% 
+  summarize(Accuracy = Accuracy)
+  
 
 # predict test data
 reg.preds <- predict(reg.train, test.data)
@@ -392,20 +600,28 @@ reg.mat <- confusionMatrix(reg.preds, test.data$stroke)
 
 ```
 
-- Methode glmnet begründen
-- preProcess erwähnen und begründen
-- metric Accuracy recherchieren
-- Tuning auswerten: alpha -> welche Methode? Interpretation lambda
+The hyperparameters of the logistic regression regularized with Elastic Net were
+tuned to $\alpha$ = `r reg.train$bestTune$alpha` and $\lambda$ = 
+`r round(reg.train$bestTune$lambda,3)`. 
+This provides a model with _Acc_ = 
+`r round(reg.train.acc,3)` which reaches _Acc_ = 
+`r round(reg.mat$overall[1],3)` with the test data.
+
 ```{r SVM}
 # fit model
+grid <- expand.grid(C = seq(0, 1, 0.05))
+
 svm.train <- train(model,
                    train.data,
                    method = "svmLinear",
                    trControl = trctrl,
                    preProcess = c("center", "scale"),
-                   tuneLength = 10)
+                   tuneGrid = grid)
 
-svm.train$bestTune
+# save accuracy
+svm.train.acc <- svm.train$results %>% 
+  filter(C == svm.train$bestTune$C) %>% 
+  summarize(Accuracy = Accuracy)
 
 # predict test data
 svm.preds <- predict(svm.train, test.data)
@@ -415,13 +631,14 @@ svm.mat <- confusionMatrix(svm.preds, test.data$stroke)
 
 ```
 
-- Methode begründen: Von lssvmRadial zu svmlinear gewechselt, vorher hat es nicht
-funktioniert. Was unterscheidet die Methoden?
+The hyperparameter of the SVM with Elastic Net was
+tuned to _C_ = `r svm.train$bestTune$C`.
+This provides a model with _Acc_ = 
+`r round(svm.train.acc,3)` which reaches _Acc_ = 
+`r round(svm.mat$overall[1],3)` with the test data.
 
 ```{r Random Forest}
 # fit model
-grid <- expand.grid(mtry = seq(0, 11, 0.5))
-
 tree.train <- train(model,
                    train.data,
                    method = "rf",
@@ -429,25 +646,23 @@ tree.train <- train(model,
                    preProcess = c("center", "scale"),
                    tuneLength = 10)
 
-tree.train$bestTune
-
-rpart.plot(tree.train$finalMode)
+# save accuracy
+tree.train.acc <- tree.train$results %>% 
+  filter(mtry == tree.train$bestTune$mtry) %>% 
+  summarize(Accuracy = Accuracy)
 
 # predict test data
 tree.preds <- predict(tree.train, test.data)
 
 # compare prediction and real data
 tree.mat <- confusionMatrix(tree.preds, test.data$stroke)
-
-
-
 ```
 
-Accuracy mit tuneLength: 0.9496 bzw 0.9432 für pred
-Acc mit grid von 0.003 bis 0.01: 0.953
-Acc mit grid von 0.01 bis 0.05: 0.953, immer noch upper bound
-
-- Methode rpart begründen
+The hyperparameter of the SVM with Elastic Net was
+tuned to _mtry_ = `r tree.train$bestTune$mtry`.
+This provides a model with _Acc_ = 
+`r round(tree.train.acc,3)` which reaches _Acc_ = 
+`r round(tree.mat$overall[1],3)` with the test data.
 
 ```{r model comparison, include=TRUE}
 # list of all models
@@ -456,13 +671,13 @@ models <- list(glm.mat, reg.mat, svm.mat, tree.mat)
 # function to ease extracting values from list
 read.output <- function(list, info){
   if(info == "accuracy"){
-    print(list$overall[1])
+    list$overall[1]
   } else { 
     if(info == "sensitivity"){
-      print(list$byClass[1])
+      list$byClass[1]
       } else {
         if(info == "specifity"){
-          print(list$byClass[2])
+          list$byClass[2]
         }
       }}}
 
@@ -474,6 +689,7 @@ model.comp <- data.frame(
   spec = sapply(models, read.output, info="specifity")
 )
 
+# create nice table
 kable(
   model.comp,
   #format = "latex",
@@ -485,63 +701,125 @@ kable(
 )
 ```
 
-Tabelle rundet an Stellen wo ich es nicht will
-Bzw es wird nicht das geknittet was hier in der Tabelle steht?
+The performance of the different models is summarized in Table 2.
 
 ## Predictor Evaluation
 
-Since the GLM reached highest accuracy while being the simplest model, it will
-be used to take a closer look at the predictors.
+Since the logistic regression reached highest accuracy while being the simplest 
+model, it will be used to take a closer look at the predictors.
 
 ```{r GLM predictor}
-glm.train
+# save coefficients for text
 summary(glm.train)
+sum.glm <- summary(glm.train)
+
+age.est <- round(sum.glm$coefficients["age", "Estimate"], 2)
+age.p <- round(sum.glm$coefficients["age", "Pr(>|z|)"], 3)
+
+gluc.est <- round(sum.glm$coefficients["avg_glucose_level", "Estimate"], 2)
+gluc.p <- round(sum.glm$coefficients["avg_glucose_level", "Pr(>|z|)"], 3)
+
+self.est <- round(sum.glm$coefficients["`work_typeSelf-employed`", 
+                                       "Estimate"], 2)
+self.p <- round(sum.glm$coefficients["`work_typeSelf-employed`", "Pr(>|z|)"], 3)
+
+urb.est <- round(sum.glm$coefficients["Residence_typeUrban", "Estimate"], 2)
+urb.p <- round(sum.glm$coefficients["Residence_typeUrban", "Pr(>|z|)"], 3)
 ```
 
-The GLM with stroke as outcome yields age (...), hypertension (...), and 
-glucose level (...) as significant predictors. 
+The logistic regression with stroke as outcome yields age (_b_ = `r age.est`, 
+_p_ < 0.001) and glucose level (_b_ = `r gluc.est`, _p_ = `r gluc.p`) as 
+significant predictors. 
 
+This means, that for each year older the odds to suffer a stroke are multiplied
+by `r round(exp(age.est),2)`, and for every increase of 1 mg/dl of average blood 
+glucose, the odds to suffer a stroke are multiplied by 
+`r round(exp(gluc.est),2)`. 
+To be precise, these values apply to the "average" person from the sample with 
+average values for all variables. The possibility that the odds change 
+differently for people with values far from the mean cannot be eliminated with 
+this analysis.
+
+Although the other predictors are strictly speaking not significant, the p-value
+of two further predictors is close to 0.05. On the one hand, self-employment 
+reduces the risk by `r round(exp(self.est)*100,1)`% (_p_ = `r self.p`), on the 
+other hand urban residence increases the risk by `r round(exp(urb.est)*100,1)`% 
+(_p_ = `r urb.p`).
 
 # Discussion 
 
-```{r calculating values for discussion}
-
-```
-
-
-According to accuracy as performance criterium, there is no difference between GLM,
-regularized regression and SVM. Due to the principle to keep modeling as simple
-as possible, as long as performance does not suffer, GLM is to be preferred in
+According to accuracy as performance criterium, there is no difference between 
+logistic regression, regularized logistic regression, SVM and random forest. 
+Due to the principle to keep modeling as simple as possible, as long as 
+performance does not suffer, logistic regression is to be preferred in
 this case. The more complex models did not improve prediction performance. 
 
-On the first glance, the accuracy of XXXX seems to be a good result for the
-goal to build a model to predict stroke occurence. Unfortunately, when
-considering specifity as an additional performance criterium, the prediction does
-not work well. Considering the data, the reason for this probably lies in the
-ratio from subjects with to subjects without stroke which is XXXXX. This ratio 
-leads to an unbalanced dataset, and accuracy is no longer a good performance
-criterium (QUELLE????): Because of the high portion of healthy subjects, high 
-accuracy is easy to acquire by always predicting "no stroke". There are
-solutions for unbalanced datasets like Over- or Under-Sampling which unfortunately 
-go beyond the scope of this project work.
-
+On the first glance, the accuracy of `r round(glm.train$results$Accuracy,3)` 
+seems to be a good result for the goal to build a model to predict stroke 
+occurence. 
+Unfortunately, when considering specifity as an additional performance 
+criterium, the prediction does not work well. Considering the data, the reason 
+for this probably lies in the ratio from subjects with to subjects without 
+stroke which is 1:`r round(stroke.ratio,2)`. This ratio leads to an unbalanced 
+dataset, and accuracy can be a misleading performance criterium: Because of the 
+high portion of healthy subjects, high accuracy is easy to acquire by always 
+predicting "no stroke". 
+There are solutions for unbalanced datasets like Over- or Under-Sampling which 
+unfortunately go beyond the scope of this project work.
 
 Although the created models will thus not work well to predict future stroke
-cases, the predictors can still be interpreted.
+cases, the predictors can still be interpreted. The logistic regression 
+presented age as a factor which multiplies the odds to suffer a stroke by 
+`r round(exp(age.est),2)` for each passing year. This is not unexpected, as the 
+prevalence of many diseases increases with age and stroke is among the most 
+common causes for people 65 years of age and older [@sahyoun2001]. 
+As second predictor, the average glucose level emerged by multiplying the odds
+of a stroke by `r round(exp(gluc.est),2)`. The glucose level is tightly-knit to
+the diagnosis of type 2 diabetes which is known to increase stroke risk as well
+[@sander2008].
 
-- Welches Modell am besten (nicht nur Acc, sondern auch Confusion Matrixes. 
-Kommen zum gleichen Ergebnis?)
-- Wie gut Modell
-- Methodische Schlussfolgerung: Hier reicht es, Methode x zu verwenden
-- Inhaltliche Schlussfolgerung:
-- Welche Variablen meistes Potenzial - medizinisch vs. demografisch
-- Variablen interpretieren - wann sollte man besonders drauf achten
-- Falls Accuracy gut erscheint, aber Confusion Matrix zeigt dass nie gefunden: 
-Liegt an Daten? Zu wenig Fälle. So wenige, dass Wette einfach auf "nicht" zu gehen
-zu gut ist. Außerdem Stichprobe zu heterogen?
-- Limitation: unbalanced, Datenherkunft unsicher
-- Future: andere Methoden/Outcome die unbalanced berücksichtigen, etwas homogenere Daten 
-weil Alter so wichtig -> auf Alter kontrollieren um andere Faktoren besser hervorzuheben
+In addition to the significant predictors, the other variables are also
+interesting to answer which factors are rather not relevant to assess the 
+stroke risk. Here, demographic and medical data seem to be more important than
+lifestyle data, though the results for residency type and self-employment are 
+interesting. It is possible that some of the other, not-significant
+variables correlate with age and thus could not contribute more than age 
+already did.
+
+
+## Limitations
+
+The limitation of this work lies primarly in the unbalanced dataset, which
+impeded the model construction with the known methods.
+
+Additionally, the validity of the data is not certain, though no variables or
+values stood out in an all too negative way. Also referring to metadata, it 
+would have been useful to know how the data where collected, especially
+in which city, region, country or culture. With this lack of information,
+generalization of the results is limited.
+
+## Future Research
+
+Future research should try to work around the aforementioned limitations, i.e.
+use methods to transform the data into a more usable, balanced dataset.
+Another possibility would be to use different data that is more balanced to 
+begin with.
+
+Although a heterogenous dataset that represents the general population well 
+can be important for classification/prediction research, it can also be of use 
+to work with a specific subset to identify risk factors of this subset. It would
+even be useful to identify which risk factors apply to everyone and which are 
+more relevant for specific subgroups.
+
+## Conclusion
+
+Unfortunately, the original goal of this project work to build a well-working
+stroke prediction model could not be achieved due to the unbalanced data.
+Nevertheless, age and glucose level could be identified as important predictors.
+
+
+\newpage
+
 
 
 # References
